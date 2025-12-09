@@ -1,0 +1,54 @@
+# Python
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Backend
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/database/features.json
+backend/database/*.json
+
+# Models (too large)
+*.pt
+*.pth
+*.onnx
+*.weights
+models/*.pt
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+#data
+data/
