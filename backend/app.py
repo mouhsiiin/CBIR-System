@@ -294,6 +294,24 @@ def serve_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
+# Download image endpoint
+@app.route('/api/images/download/<string:image_id>')
+def download_image(image_id):
+    """Download an image by its ID"""
+    image_path = image_manager.get_image_path(image_id)
+    if not image_path:
+        return jsonify({'error': 'Image not found'}), 404
+    
+    from pathlib import Path
+    filepath = Path(image_path)
+    return send_from_directory(
+        filepath.parent, 
+        filepath.name, 
+        as_attachment=True,
+        download_name=filepath.name
+    )
+
+
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'healthy', 'model_loaded': detection_service.is_loaded()}), 200

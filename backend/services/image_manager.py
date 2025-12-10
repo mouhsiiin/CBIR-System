@@ -192,6 +192,43 @@ class ImageManager:
             else:
                 return {'error': 'Resize parameters (width, height) required'}
         
+        elif transform_type == 'scale':
+            # Scale with aspect ratio preservation
+            scale_factor = params.get('scale', 1.0)
+            if scale_factor <= 0:
+                return {'error': 'Scale factor must be positive'}
+            h, w = img.shape[:2]
+            new_w = int(w * scale_factor)
+            new_h = int(h * scale_factor)
+            img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        
+        elif transform_type == 'resize_keep_aspect':
+            # Resize keeping aspect ratio (fit within max dimensions)
+            max_width = params.get('max_width')
+            max_height = params.get('max_height')
+            if not max_width and not max_height:
+                return {'error': 'max_width or max_height required'}
+            
+            h, w = img.shape[:2]
+            aspect = w / h
+            
+            if max_width and max_height:
+                # Fit within both constraints
+                if w / max_width > h / max_height:
+                    new_w = max_width
+                    new_h = int(max_width / aspect)
+                else:
+                    new_h = max_height
+                    new_w = int(max_height * aspect)
+            elif max_width:
+                new_w = max_width
+                new_h = int(max_width / aspect)
+            else:
+                new_h = max_height
+                new_w = int(max_height * aspect)
+            
+            img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
+        
         elif transform_type == 'rotate':
             angle = params.get('angle', 0)
             h, w = img.shape[:2]

@@ -1,14 +1,17 @@
 // frontend/src/pages/Gallery.jsx
 
 import { useState, useEffect } from 'react'
-import { Trash2, Image as ImageIcon, Loader2, Upload } from 'lucide-react'
+import { Trash2, Image as ImageIcon, Loader2, Upload, Download, Edit3, RefreshCw } from 'lucide-react'
 import api from '../services/api'
+import ImageEditor from '../components/ImageEditor'
 
 function Gallery({ onUseAsQuery }) {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedImages, setSelectedImages] = useState([])
   const [stats, setStats] = useState(null)
+  const [editingImage, setEditingImage] = useState(null)
+  const [processingBatch, setProcessingBatch] = useState(false)
 
   useEffect(() => {
     loadGallery()
@@ -66,7 +69,119 @@ function Gallery({ onUseAsQuery }) {
     const imageId = selectedImages[0]
     const image = images.find(img => img.image_id === imageId)
     
-    if (image && onUseAsQuery) {
+   
+
+  const handleDownloadSelected = async () => {
+    if (selectedImages.length === 0) return
+    
+    for (const imageId of selectedImages) {
+      const image = images.find(img => img.image_id === imageId)
+      if (image) {
+        await api.downloadImage(imageId, image.filename)
+      }
+    }
+  }
+
+  const handleEditImage = () => {
+    if (selectedImages.length !== 1) return
+    Image Editor Modal */}
+      {editingImage && (
+        <ImageEditor
+          imageId={editingImage.imageId}
+          imageUrl={editingImage.imageUrl}
+          onClose={() => setEditingImage(null)}
+          onImageCreated={handleImageCreated}
+        />
+      )}
+
+      {/* Floating Action Buttons */}
+      {selectedImages.length > 0 && (
+        <>
+          {/* Delete Button */}
+          <button
+            onClick={handleDeleteSelected}
+            className="fixed bottom-8 right-8 z-50 flex items-center space-x-2 px-6 py-4 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-all shadow-2xl hover:scale-110 animate-bounce"
+          >
+            <Trash2 className="w-5 h-5" />
+            <span>Delete {selectedImages.length}</span>
+          </button>
+
+          {/* Download Button */}
+          <button
+            onClick={handleDownloadSelected}
+            className="fixed bottom-8 right-52 z-50 flex items-center space-x-2 px-6 py-4 bg-green-600 text-white rounded-full font-bold hover:bg-green-700 transition-all shadow-2xl hover:scale-110"
+          >
+            <Download className="w-5 h-5" />
+            <span>Download {selectedImages.length}</span>
+          </button>
+
+          {/* Edit Button - Only show when 1 image selected */}
+          {selectedImages.length === 1 && (
+            <button
+              onClick={handleEditImage}
+              className="fixed bottom-24 right-52 z-50 flex items-center space-x-2 px-6 py-4 bg-purple-600 text-white rounded-full font-bold hover:bg-purple-700 transition-all shadow-2xl hover:scale-110"
+            >
+              <Edit3 className="w-5 h-5" />
+              <span>Edit Image</span>
+            </button>
+          )}
+
+          {/* Use as Query Button - Only show when 1 image selected */}
+          {selectedImages.length === 1 && (
+            <button
+              onClick={handleUseAsQuery}
+              className="fixed bottom-24 right-8 z-50 flex items-center space-x-2 px-6 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-2xl hover:scale-110"
+            >
+              <Upload className="w-5 h-5" />
+              <span>Use as Query</span>
+            </button>
+          )}
+
+          {/* Batch Processing Buttons */}
+          <button
+            onClick={handleBatchDetect}
+            disabled={processingBatch}
+            className="fixed bottom-40 right-8 z-50 flex items-center space-x-2 px-6 py-4 bg-orange-600 text-white rounded-full font-bold hover:bg-orange-700 transition-all shadow-2xl hover:scale-110 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 ${processingBatch ? 'animate-spin' : ''}`} />
+            <span>Detect Objects</span>
+          </button>
+
+          <button
+            onClick={handleBatchExtractFeatures}
+            disabled={processingBatch}
+            className="fixed bottom-40 right-52 z-50 flex items-center space-x-2 px-6 py-4 bg-indigo-600 text-white rounded-full font-bold hover:bg-indigo-700 transition-all shadow-2xl hover:scale-110 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-5 h-5 ${processingBatch ? 'animate-spin' : ''}`} />
+            <span>Extract Features</span>
+          </button>ssingBatch(true)
+    try {
+      await api.detectObjectsBatch(selectedImages)
+      alert(`Detected objects in ${selectedImages.length} image(s)`)
+      loadStats()
+    } catch (error) {
+      console.error('Batch detection failed:', error)
+      alert('Batch detection failed')
+    } finally {
+      setProcessingBatch(false)
+    }
+  }
+
+  const handleBatchExtractFeatures = async () => {
+    if (selectedImages.length === 0) return
+    
+    setProcessingBatch(true)
+    try {
+      const result = await api.extractFeaturesBatch(selectedImages)
+      alert(`Extracted features for ${result.processed?.length || 0} object(s)`)
+      loadStats()
+    } catch (error) {
+      console.error('Batch feature extraction failed:', error)
+      alert('Batch feature extraction failed')
+    } finally {
+      setProcessingBatch(false)
+    }
+  } if (image && onUseAsQuery) {
       onUseAsQuery(imageId, image.filename)
     }
   }

@@ -152,12 +152,15 @@ function App() {
       await api.extractFeatures(imageId, objectId)
       
       // 2. Convert weights from percentage to decimal
+      // Distribute weights across all feature types
       const apiWeights = {
         color: weights.color / 100,
-        texture_tamura: weights.texture / 200,  // Split texture weight
-        texture_gabor: weights.texture / 200,
-        shape_hu: weights.shape / 200,  // Split shape weight
-        shape_hog: weights.shape / 200
+        texture_tamura: weights.texture / 300,  // Split texture weight 3 ways
+        texture_gabor: weights.texture / 300,
+        texture_lbp: weights.texture / 300,
+        shape_hu: weights.shape / 300,  // Split shape weight 3 ways
+        shape_hog: weights.shape / 300,
+        shape_contour: weights.shape / 300
       }
       
       // 3. Search for similar objects

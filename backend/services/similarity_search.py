@@ -80,11 +80,13 @@ class SimilaritySearchService:
         # Default weights (can be customized)
         if weights is None:
             weights = {
-                'color': 0.3,
-                'texture_tamura': 0.2,
-                'texture_gabor': 0.2,
-                'shape_hu': 0.15,
-                'shape_hog': 0.15
+                'color': 0.25,
+                'texture_tamura': 0.15,
+                'texture_gabor': 0.15,
+                'texture_lbp': 0.10,
+                'shape_hu': 0.10,
+                'shape_hog': 0.15,
+                'shape_contour': 0.10
             }
         
         similarities = []
@@ -181,6 +183,18 @@ class SimilaritySearchService:
             total_similarity += sim * weights.get('shape_hog', 0.15)
             total_weight += weights.get('shape_hog', 0.15)
         
+        # LBP texture similarity
+        if 'texture_lbp' in features1 and 'texture_lbp' in features2:
+            sim = self._lbp_similarity(features1['texture_lbp'], features2['texture_lbp'])
+            total_similarity += sim * weights.get('texture_lbp', 0.10)
+            total_weight += weights.get('texture_lbp', 0.10)
+        
+        # Contour orientation similarity
+        if 'shape_contour' in features1 and 'shape_contour' in features2:
+            sim = self._contour_similarity(features1['shape_contour'], features2['shape_contour'])
+            total_similarity += sim * weights.get('shape_contour', 0.10)
+            total_weight += weights.get('shape_contour', 0.10)
+        
         if total_weight > 0:
             return total_similarity / total_weight
         return 0.0
@@ -262,6 +276,30 @@ class SimilaritySearchService:
             similarity = np.dot(features1, features2)
             return float(max(0, similarity))
         return 0.0
+    
+    def _lbp_similarity(self, lbp1, lbp2):
+        """Compute LBP histogram similarity using histogram intersection"""
+        hist1 = np.array(lbp1.get('lbp_hist', []))
+        hist2 = np.array(lbp2.get('lbp_hist', []))
+        
+        if len(hist1) == 0 or len(hist2) == 0:
+            return 0.0
+        
+        # Histogram intersection
+        intersection = np.minimum(hist1, hist2).sum()
+        return float(intersection)
+    
+    def _contour_similarity(self, contour1, contour2):
+        """Compute contour orientation histogram similarity"""
+        hist1 = np.array(contour1.get('orientation_hist', []))
+        hist2 = np.array(contour2.get('orientation_hist', []))
+        
+        if len(hist1) == 0 or len(hist2) == 0:
+            return 0.0
+        
+        # Histogram intersection for orientation
+        intersection = np.minimum(hist1, hist2).sum()
+        return float(intersection)
     
     def get_statistics(self):
         """Get database statistics"""

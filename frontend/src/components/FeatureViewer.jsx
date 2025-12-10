@@ -79,6 +79,27 @@ function FeatureViewer({ features, onClose }) {
 function ColorFeatures({ features }) {
   return (
     <div className="space-y-6">
+      {/* Dominant Colors */}
+      {features.dominant_colors && features.dominant_colors.length > 0 && (
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 mb-3">🎨 Dominant Colors</h3>
+          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div className="flex space-x-3">
+              {features.dominant_colors.map((color, idx) => (
+                <div key={idx} className="flex-1 text-center">
+                  <div 
+                    className="w-full h-16 rounded-lg shadow-inner border border-slate-300"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  <p className="text-xs text-slate-600 mt-2 font-mono">{color.hex}</p>
+                  <p className="text-xs text-slate-500">{color.percentage}%</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h3 className="text-lg font-bold text-slate-800 mb-3">Mean RGB Values</h3>
         <div className="grid grid-cols-3 gap-4">
@@ -204,6 +225,44 @@ function TextureFeatures({ features }) {
           </p>
         </div>
       </div>
+
+      {/* LBP Features */}
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">Local Binary Pattern (LBP)</h3>
+        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-xs text-slate-500">LBP Mean</span>
+              <p className="text-lg font-bold text-slate-800">{features.lbp_mean?.toFixed(4) || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500">LBP Std Dev</span>
+              <p className="text-lg font-bold text-slate-800">{features.lbp_std?.toFixed(4) || 'N/A'}</p>
+            </div>
+          </div>
+          {features.lbp_histogram && features.lbp_histogram.length > 0 && (
+            <div>
+              <span className="text-xs text-slate-500">LBP Histogram ({features.lbp_histogram.length} bins)</span>
+              <div className="flex items-end space-x-1 h-16 mt-2">
+                {features.lbp_histogram.map((value, idx) => (
+                  <div
+                    key={idx}
+                    className="flex-1 bg-gradient-to-t from-teal-500 to-teal-400 rounded-t"
+                    style={{
+                      height: `${Math.min(value, 1) * 100}%`,
+                      opacity: 0.8
+                    }}
+                    title={`Bin ${idx}: ${(value * 100).toFixed(1)}%`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-slate-500">
+            LBP captures micro-patterns in texture (rotation invariant)
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -244,6 +303,49 @@ function ShapeFeatures({ features }) {
           </p>
           <p className="text-xs text-slate-500 mt-2">
             HOG features capture edge directions and shapes, commonly used for object detection
+          </p>
+        </div>
+      </div>
+
+      {/* Contour Orientation Features */}
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 mb-3">Contour Orientation</h3>
+        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-3">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-xs text-slate-500">Main Orientation</span>
+              <p className="text-lg font-bold text-slate-800">{features.main_orientation?.toFixed(1) || 0}°</p>
+            </div>
+            <div>
+              <span className="text-xs text-slate-500">Orientation Variance</span>
+              <p className="text-lg font-bold text-slate-800">{features.orientation_variance?.toFixed(4) || 'N/A'}</p>
+            </div>
+          </div>
+          {features.contour_orientation_hist && features.contour_orientation_hist.length > 0 && (
+            <div>
+              <span className="text-xs text-slate-500">Edge Orientation Histogram (0° - 180°)</span>
+              <div className="flex items-end space-x-1 h-16 mt-2">
+                {features.contour_orientation_hist.map((value, idx) => (
+                  <div
+                    key={idx}
+                    className="flex-1 bg-gradient-to-t from-orange-500 to-amber-400 rounded-t"
+                    style={{
+                      height: `${Math.min(value, 1) * 100}%`,
+                      opacity: 0.8
+                    }}
+                    title={`${idx * 10}° - ${(idx + 1) * 10}°: ${(value * 100).toFixed(1)}%`}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>0°</span>
+                <span>90°</span>
+                <span>180°</span>
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-slate-500">
+            Contour orientation captures the edge direction distribution from the most significant contour
           </p>
         </div>
       </div>
