@@ -53,7 +53,7 @@ function SearchResults({ results, isLoading }) {
           <div key={result.id} className="image-card bg-white shadow-md">
 
             <img 
-              src={api.getImageUrl(result.filename || result.imageId + '.jpg')}
+              src={api.getImageUrl(result.filename)}
               alt={`${result.className} - ${result.similarity}% match`}
               className="w-full h-56 object-cover"
               onError={(e) => {

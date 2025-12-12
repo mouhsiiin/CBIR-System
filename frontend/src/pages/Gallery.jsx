@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react'
 import { Trash2, Image as ImageIcon, Loader2, Upload, Download, Edit3, RefreshCw } from 'lucide-react'
 import api from '../services/api'
 import ImageEditor from '../components/ImageEditor'
+import ConfirmModal from '../components/ConfirmModal'
 
-function Gallery({ onUseAsQuery }) {
+function Gallery({ onUseAsQuery, showToast }) {
   const [images, setImages] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedImages, setSelectedImages] = useState([])
   const [stats, setStats] = useState(null)
-  const [editingImage, setEditingImage] = useState(null)
+  const [editingImage, setEditingImage] = useState(null) // { imageId, imageUrl }
   const [processingBatch, setProcessingBatch] = useState(false)
+  const [confirmModal, setConfirmModal] = useState(null)
 
   useEffect(() => {
     loadGallery()
@@ -50,17 +52,25 @@ function Gallery({ onUseAsQuery }) {
   const handleDeleteSelected = async () => {
     if (selectedImages.length === 0) return
     
-    if (!confirm(`Delete ${selectedImages.length} image(s)?`)) return
-    
-    try {
-      await api.deleteImages(selectedImages)
-      setSelectedImages([])
-      loadGallery()
-      loadStats()
-    } catch (error) {
-      console.error('Failed to delete images:', error)
-      alert('Failed to delete images')
-    }
+    setConfirmModal({
+      title: 'Delete Images',
+      message: `Are you sure you want to delete ${selectedImages.length} image(s)? This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await api.deleteImages(selectedImages)
+          setSelectedImages([])
+          loadGallery()
+          loadStats()
+          showToast?.(`Deleted ${selectedImages.length} image(s)`, 'success')
+        } catch (error) {
+          console.error('Failed to delete images:', error)
+          showToast?.('Failed to delete images', 'error')
+        } finally {
+          setConfirmModal(null)
+        }
+      },
+      onCancel: () => setConfirmModal(null)
+    })
   }
 
   const handleUseAsQuery = async () => {
@@ -69,7 +79,11 @@ function Gallery({ onUseAsQuery }) {
     const imageId = selectedImages[0]
     const image = images.find(img => img.image_id === imageId)
     
-   
+    if (image && onUseAsQuery) {
+      onUseAsQuery(imageId, image.filename)
+      setSelectedImages([])
+    }
+  }
 
   const handleDownloadSelected = async () => {
     if (selectedImages.length === 0) return
@@ -80,11 +94,93 @@ function Gallery({ onUseAsQuery }) {
         await api.downloadImage(imageId, image.filename)
       }
     }
+    showToast?.(`Downloaded ${selectedImages.length} image(s)`, 'success')
   }
 
+  // NOTE: The previous code had JSX (Image Editor Modal) inside this function.
+  // The correct logic is to set the state, which then renders the modal in the main return block.
   const handleEditImage = () => {
     if (selectedImages.length !== 1) return
-    Image Editor Modal */}
+    
+    const imageId = selectedImages[0]
+    const image = images.find(img => img.image_id === imageId)
+
+    if (image) {
+      setEditingImage({ 
+        imageId: imageId, 
+        imageUrl: api.getImageUrl(image.filename) 
+      })
+    }
+  }
+  
+  // Placeholder function for when an image is successfully created/edited
+  const handleImageCreated = () => {
+    setEditingImage(null) // Close modal
+    loadGallery()        // Refresh gallery
+    loadStats()          // Refresh stats
+  }
+  
+  // --- Batch Processing Handlers ---
+
+  const handleBatchDetect = async () => {
+    if (selectedImages.length === 0) return
+    
+    setProcessingBatch(true)
+    try {
+      await api.detectObjectsBatch(selectedImages)
+      showToast?.(`Detected objects in ${selectedImages.length} image(s)`, 'success')
+      loadStats()
+    } catch (error) {
+      console.error('Batch detection failed:', error)
+      showToast?.('Batch detection failed', 'error')
+    } finally {
+      setProcessingBatch(false)
+    }
+  }
+
+  const handleBatchExtractFeatures = async () => {
+    if (selectedImages.length === 0) return
+    
+    setProcessingBatch(true)
+    try {
+      const result = await api.extractFeaturesBatch(selectedImages)
+      showToast?.(`Extracted features for ${result.processed?.length || 0} object(s)`, 'success')
+      loadStats()
+    } catch (error) {
+      console.error('Batch feature extraction failed:', error)
+      showToast?.('Batch feature extraction failed', 'error')
+    } finally {
+      setProcessingBatch(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600 font-semibold">Loading gallery...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+          confirmText="Delete"
+          type="danger"
+        />
+      )}
+
+      {/* Image Editor Modal - Renders when editingImage state is set */}
       {editingImage && (
         <ImageEditor
           imageId={editingImage.imageId}
@@ -154,73 +250,7 @@ function Gallery({ onUseAsQuery }) {
           >
             <RefreshCw className={`w-5 h-5 ${processingBatch ? 'animate-spin' : ''}`} />
             <span>Extract Features</span>
-          </button>ssingBatch(true)
-    try {
-      await api.detectObjectsBatch(selectedImages)
-      alert(`Detected objects in ${selectedImages.length} image(s)`)
-      loadStats()
-    } catch (error) {
-      console.error('Batch detection failed:', error)
-      alert('Batch detection failed')
-    } finally {
-      setProcessingBatch(false)
-    }
-  }
-
-  const handleBatchExtractFeatures = async () => {
-    if (selectedImages.length === 0) return
-    
-    setProcessingBatch(true)
-    try {
-      const result = await api.extractFeaturesBatch(selectedImages)
-      alert(`Extracted features for ${result.processed?.length || 0} object(s)`)
-      loadStats()
-    } catch (error) {
-      console.error('Batch feature extraction failed:', error)
-      alert('Batch feature extraction failed')
-    } finally {
-      setProcessingBatch(false)
-    }
-  } if (image && onUseAsQuery) {
-      onUseAsQuery(imageId, image.filename)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 font-semibold">Loading gallery...</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Floating Action Buttons */}
-      {selectedImages.length > 0 && (
-        <>
-          {/* Delete Button */}
-          <button
-            onClick={handleDeleteSelected}
-            className="fixed bottom-8 right-8 z-50 flex items-center space-x-2 px-6 py-4 bg-red-600 text-white rounded-full font-bold hover:bg-red-700 transition-all shadow-2xl hover:scale-110 animate-bounce"
-          >
-            <Trash2 className="w-5 h-5" />
-            <span>Delete {selectedImages.length}</span>
           </button>
-
-          {/* Use as Query Button - Only show when 1 image selected */}
-          {selectedImages.length === 1 && (
-            <button
-              onClick={handleUseAsQuery}
-              className="fixed bottom-24 right-8 z-50 flex items-center space-x-2 px-6 py-4 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 transition-all shadow-2xl hover:scale-110"
-            >
-              <Upload className="w-5 h-5" />
-              <span>Use as Query</span>
-            </button>
-          )}
         </>
       )}
 

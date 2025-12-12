@@ -130,14 +130,15 @@ class SimilaritySearchService:
                     # Already filtered by class, no need for bonus
                     final_similarity = visual_similarity
                 
-                # Clamp to [0, 1]
+                # ✅ FIX: Clamp to [0, 1] range before storing
                 final_similarity = max(0.0, min(1.0, final_similarity))
+                visual_similarity = max(0.0, min(1.0, visual_similarity))
                 
                 similarities.append({
                     'image_id': image_id,
                     'object_id': obj_idx,
                     'similarity': final_similarity,
-                    'visual_similarity': visual_similarity,  # Keep original for debugging
+                    'visual_similarity': visual_similarity,
                     'class': target_class,
                     'confidence': detection_info.get('confidence', 0.0),
                     'bbox': detection_info.get('bbox', [])

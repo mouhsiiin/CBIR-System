@@ -10,6 +10,7 @@ import ImageWithBoundingBoxes from './components/ImageWithBoundingBoxes'
 import api from './services/api'
 import Gallery from './pages/Gallery'
 import FeatureViewer from './components/FeatureViewer'
+import Toast from './components/Toast'
 import { Info } from 'lucide-react'
 
 function App() {
@@ -25,12 +26,17 @@ function App() {
   const [currentPage, setCurrentPage] = useState('upload')
   const [showFeatures, setShowFeatures] = useState(false)
   const [currentFeatures, setCurrentFeatures] = useState(null)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type })
+  }
 
   // Handler to view extracted features
   const handleViewFeatures = async () => {
     console.log('=== VIEW FEATURES START ===')
     if (!imageId || selectedObjects.length === 0) {
-      alert('No object selected')
+      showToast('Please select an object first', 'warning')
       return
     }
     
@@ -57,7 +63,7 @@ function App() {
         setShowFeatures(true)
       } catch (extractError) {
         console.error('Failed:', extractError)
-        alert('Failed to load features: ' + extractError.message)
+        showToast('Failed to load features: ' + extractError.message, 'error')
       }
     }
   }
@@ -102,14 +108,17 @@ function App() {
       
       // 4. Pre-extract features for first object in background
       if (formattedDetections.length > 0) {
+        showToast(`Detected ${formattedDetections.length} object(s)`, 'success')
         api.extractFeatures(newImageId, 0).catch(err => 
           console.error('Background feature extraction failed:', err)
         )
+      } else {
+        showToast('No objects detected in image', 'warning')
       }
       
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to process image: ' + error.message)
+      showToast('Failed to process image: ' + error.message, 'error')
     } finally {
       setIsProcessing(false)
     }
@@ -138,7 +147,7 @@ function App() {
 
   const handleSearch = async (weights) => {
     if (selectedObjects.length === 0) {
-      alert('Please select at least one detected object to search')
+      showToast('Please select at least one detected object to search', 'warning')
       return
     }
 
@@ -171,22 +180,29 @@ function App() {
         apiWeights
       )
       
-      // 4. Format results for UI
+      // 4. Format results for UI - ✅ FIX: Convert similarity to percentage and map fields correctly
       const formattedResults = searchResult.similar_objects.map((obj, idx) => ({
-        id: idx + 1,
-        image_id: obj.image_id,
-        object_id: obj.object_id,
-        similarity: obj.similarity,
-        class: obj.class,
-        confidence: obj.confidence,
+        id: `${obj.image_id}-${obj.object_id}`,
+        imageId: obj.image_id,
+        objectId: obj.object_id,
+        filename: obj.filename,  // ✅ Include filename from API response
+        similarity: Math.round(Math.min(obj.similarity * 100, 100)),  // ✅ Convert to percentage and cap at 100
+        className: obj.class,
+        confidence: Math.round(obj.confidence * 100),
         bbox: obj.bbox
       }))
       
       setSearchResults(formattedResults)
       
+      if (formattedResults.length > 0) {
+        showToast(`Found ${formattedResults.length} similar images`, 'success')
+      } else {
+        showToast('No similar images found', 'info')
+      }
+      
     } catch (error) {
       console.error('Search error:', error)
-      alert('Search failed: ' + error.message)
+      showToast('Search failed: ' + error.message, 'error')
     } finally {
       setIsSearching(false)
     }
@@ -219,13 +235,14 @@ function App() {
       
       // Pre-extract features
       if (formattedDetections.length > 0) {
+        showToast('Image loaded as query', 'success')
         api.extractFeatures(imageId, 0).catch(err => 
           console.error('Background feature extraction failed:', err)
         )
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to process image: ' + error.message)
+      showToast('Failed to process image: ' + error.message, 'error')
     } finally {
       setIsProcessing(false)
     }
@@ -234,6 +251,15 @@ function App() {
   return (
     <div className="min-h-screen bg-[#F8F9FA]">
       <Header currentPage={currentPage} onNavigate={setCurrentPage} />
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       <main className="pt-20 px-6 pb-6">
         <div className="max-w-[1800px] mx-auto">
@@ -321,7 +347,7 @@ function App() {
 
             </div>
           ) : (
-            <Gallery onUseAsQuery={handleUseImageAsQuery} />
+            <Gallery onUseAsQuery={handleUseImageAsQuery} showToast={showToast} />
           )}
         </div>
       </main>
