@@ -42,7 +42,9 @@ class ImageManager:
         
         # Check all existing images
         for filepath in self.upload_folder.glob('*'):
-            if filepath.is_file() and filepath != Path(new_image_path):
+            if (filepath.is_file() and 
+                filepath != Path(new_image_path) and 
+                filepath.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.bmp']):
                 existing_hash = self._compute_image_hash(filepath)
                 if existing_hash == new_hash:
                     # Found duplicate
