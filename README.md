@@ -128,7 +128,7 @@ Place your fine-tuned YOLOv8n model file in the `models/` directory:
 models/yolov8n_15classes_finetuned.pt
 ```
 
-See [docs/model.md](docs/model.md) for detailed information about the model training process.
+See [docs/model.md](docs/model.md) for detailed information about the model training process (note: documentation is in French).
 
 ## 💡 Usage
 
@@ -165,27 +165,27 @@ For detailed API documentation, see [backend/README.md](backend/README.md)
 
 ## 🎯 Object Categories
 
-The system detects 15 ImageNet categories:
+The system detects 15 ImageNet categories (using COCO dataset class IDs):
 
-| Category | Description |
-|----------|-------------|
-| Person | Human beings, people |
-| Bicycle | Two-wheeled vehicles |
-| Car | Automobiles, motor cars |
-| Airplane | Aircraft, aeroplanes |
-| Boat | Watercraft, ships |
-| Traffic Light | Traffic signals |
-| Bird | Avian species |
-| Cat | Domestic cats, felines |
-| Dog | Domestic dogs, canines |
-| Horse | Equines |
-| Umbrella | Rain protection devices |
-| Bottle | Containers for liquids |
-| Apple | Fruit, apples |
-| Pizza | Italian food dish |
-| Laptop | Portable computers |
+| COCO ID | Category | Description |
+|---------|----------|-------------|
+| 0 | Person | Human beings, people |
+| 1 | Bicycle | Two-wheeled vehicles |
+| 2 | Car | Automobiles, motor cars |
+| 4 | Airplane | Aircraft, aeroplanes |
+| 8 | Boat | Watercraft, ships |
+| 9 | Traffic Light | Traffic signals |
+| 14 | Bird | Avian species |
+| 15 | Cat | Domestic cats, felines |
+| 16 | Dog | Domestic dogs, canines |
+| 17 | Horse | Equines |
+| 25 | Umbrella | Rain protection devices |
+| 39 | Bottle | Containers for liquids |
+| 47 | Apple | Fruit, apples |
+| 52 | Pizza | Italian food dish |
+| 63 | Laptop | Portable computers |
 
-See [CATEGORIES.md](CATEGORIES.md) for detailed information about each category.
+See [CATEGORIES.md](CATEGORIES.md) for detailed information about each category, including WordNet synsets and feature extraction details.
 
 ## 🔧 Configuration
 
@@ -223,7 +223,7 @@ The fine-tuned YOLOv8n model achieves:
 - **Recall**: 83.0%
 - **Generalization Gap**: -1.7% ✅
 
-For detailed model training notes, see [docs/model.md](docs/model.md)
+For detailed model training notes, see [docs/model.md](docs/model.md) (in French)
 
 ## 🛠️ Development
 
