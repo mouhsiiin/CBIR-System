@@ -128,7 +128,7 @@ Place your fine-tuned YOLOv8n model file in the `models/` directory:
 models/yolov8n_15classes_finetuned.pt
 ```
 
-See [docs/model.md](docs/model.md) for detailed information about the model training process (note: documentation is in French).
+See [docs/model.md](docs/model.md) for detailed information about the model training process (documentation in French).
 
 ## 💡 Usage
 
@@ -223,7 +223,7 @@ The fine-tuned YOLOv8n model achieves:
 - **Recall**: 83.0%
 - **Generalization Gap**: -1.7% ✅
 
-For detailed model training notes, see [docs/model.md](docs/model.md) (in French)
+For detailed model training notes, see [docs/model.md](docs/model.md) (documentation in French)
 
 ## 🛠️ Development
 
