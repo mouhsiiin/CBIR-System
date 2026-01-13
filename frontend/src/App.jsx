@@ -11,6 +11,8 @@ import api from './services/api'
 import Gallery from './pages/Gallery'
 import FeatureViewer from './components/FeatureViewer'
 import Toast from './components/Toast'
+import Model3DSearch from './components/Model3DSearch'
+import Gallery3D from './pages/Gallery3D'
 import { Info } from 'lucide-react'
 
 // Import new step components
@@ -271,30 +273,8 @@ function App() {
 
   return (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-    {/* Header - Hidden on upload page, shown on gallery */}
-    {currentPage === 'gallery' && (
-      <Header currentPage={currentPage} onNavigate={setCurrentPage} />
-    )}
-
-    {/* Workflow Navigation - Only on upload page */}
-    {currentPage === 'upload' && (
-      <div className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gradient">SmartGallery CBIR</h1>
-          <button
-            onClick={() => setCurrentPage('gallery')}
-            className="btn-secondary text-sm"
-          >
-            View Gallery
-          </button>
-        </div>
-        <WorkflowTabs 
-          currentStep={currentStep}
-          completedSteps={completedSteps}
-          onStepClick={setCurrentStep}
-        />
-      </div>
-    )}
+    {/* Header - Always visible */}
+    <Header currentPage={currentPage} onNavigate={setCurrentPage} />
 
     {/* Toast Notification */}
     {toast && (
@@ -307,7 +287,16 @@ function App() {
 
     {currentPage === 'upload' ? (
       <>
-        {/* Main Content with top padding for fixed header */}
+        {/* Workflow Navigation */}
+        <div className="fixed top-[72px] left-0 right-0 z-40 bg-white shadow-md">
+          <WorkflowTabs 
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+            onStepClick={setCurrentStep}
+          />
+        </div>
+
+        {/* Main Content with proper spacing */}
         <main className="pt-[160px] px-6 pb-6">
           {/* Step 1: Upload */}
           {currentStep === 1 && (
@@ -356,6 +345,14 @@ function App() {
           )}
         </main>
       </>
+    ) : currentPage === '3d' ? (
+      <main className="pt-20 px-6 pb-6">
+        <Model3DSearch showToast={showToast} />
+      </main>
+    ) : currentPage === '3d-gallery' ? (
+      <main className="pt-20 px-6 pb-6">
+        <Gallery3D showToast={showToast} />
+      </main>
     ) : (
       <main className="pt-20 px-6 pb-6">
         <Gallery onUseAsQuery={handleUseImageAsQuery} showToast={showToast} />

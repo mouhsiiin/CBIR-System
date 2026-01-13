@@ -26,6 +26,7 @@ A sophisticated Content-Based Image Retrieval (CBIR) system powered by YOLOv8 ob
 - Customizable feature weights for similarity search
 - Gallery view with object detection visualization
 - Feature visualization and analysis tools
+- 3D shape search (Global features) - upload `.obj` models and search for similar models using geometric descriptors (volume, surface area, compactness, bounding box aspect ratios, moments of inertia)
 
 ## 🏗️ Architecture
 

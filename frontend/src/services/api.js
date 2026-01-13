@@ -130,6 +130,92 @@ class ApiService {
     return response.json();
   }
 
+  // 3D model endpoints
+  async upload3DModel(file) {
+    const formData = new FormData();
+    formData.append('model', file);
+
+    const response = await fetch(`${API_BASE_URL}/3d/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) throw new Error('3D model upload failed');
+    return response.json();
+  }
+
+  async add3DModel(modelId, objPath, metadata = {}) {
+    const response = await fetch(`${API_BASE_URL}/3d/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_id: modelId, obj_path: objPath, metadata }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Add 3D model failed');
+    }
+    return response.json();
+  }
+
+  async search3DModels(objPath, topK = 10) {
+    const response = await fetch(`${API_BASE_URL}/3d/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ obj_path: objPath, top_k: topK }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || '3D search failed');
+    }
+    return response.json();
+  }
+
+  async get3DStats() {
+    const response = await fetch(`${API_BASE_URL}/3d/stats`);
+    if (!response.ok) throw new Error('Failed to get 3D stats');
+    return response.json();
+  }
+
+  // List uploaded 3D files
+  async get3DList() {
+    const response = await fetch(`${API_BASE_URL}/3d/list`);
+    if (!response.ok) throw new Error('Failed to get 3D list');
+    return response.json();
+  }
+
+  async delete3DFile(filename) {
+    const response = await fetch(`${API_BASE_URL}/3d/delete`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename }),
+    })
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Delete failed');
+    }
+    return response.json();
+  }
+
+  // Database list & deletion
+  async get3DDatabase() {
+    const response = await fetch(`${API_BASE_URL}/3d/db`);
+    if (!response.ok) throw new Error('Failed to get 3D database');
+    return response.json();
+  }
+
+  async delete3DModel(modelId) {
+    const response = await fetch(`${API_BASE_URL}/3d/db/delete/${modelId}`, {
+      method: 'DELETE'
+    })
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Failed to delete 3D model');
+    }
+    return response.json();
+  }
+
   // Download image
   getDownloadUrl(imageId) {
     return `${API_BASE_URL}/images/download/${imageId}`;

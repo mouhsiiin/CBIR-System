@@ -12,6 +12,7 @@ from services.object_detection import ObjectDetectionService
 from services.feature_extraction import FeatureExtractionService
 from services.similarity_search import SimilaritySearchService
 from services.image_manager import ImageManager
+from services.shape3d_features import Shape3DFeatureExtractor, Shape3DSimilaritySearch
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -19,13 +20,17 @@ api = Api(app)
 
 # Configuration
 app.config['UPLOAD_FOLDER'] = Path(__file__).parent / 'uploads'
+app.config['3D_MODELS_FOLDER'] = Path(__file__).parent / 'uploads' / '3d_models'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+app.config['ALLOWED_3D_EXTENSIONS'] = {'obj'}
 app.config['MODEL_PATH'] = Path(__file__).parent.parent / 'models' / 'yolov8n_15classes_finetuned.pt'
 app.config['DATABASE_PATH'] = Path(__file__).parent / 'database' / 'features.json'
+app.config['DATABASE_3D_PATH'] = Path(__file__).parent / 'database' / 'features_3d.json'
 
 # Create necessary directories
 app.config['UPLOAD_FOLDER'].mkdir(parents=True, exist_ok=True)
+app.config['3D_MODELS_FOLDER'].mkdir(parents=True, exist_ok=True)
 (Path(__file__).parent / 'database').mkdir(parents=True, exist_ok=True)
 
 # Initialize services
@@ -33,9 +38,14 @@ detection_service = ObjectDetectionService(str(app.config['MODEL_PATH']))
 feature_service = FeatureExtractionService()
 similarity_service = SimilaritySearchService(str(app.config['DATABASE_PATH']))
 image_manager = ImageManager(str(app.config['UPLOAD_FOLDER']))
+shape3d_extractor = Shape3DFeatureExtractor()
+shape3d_similarity = Shape3DSimilaritySearch(str(app.config['DATABASE_3D_PATH']))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def allowed_3d_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_3D_EXTENSIONS']
 
 
 # REST API Resources
@@ -279,6 +289,215 @@ class DatabaseStats(Resource):
         return stats, 200
 
 
+# ===== 3D Model API Resources =====
+
+class Model3DUpload(Resource):
+    """Upload 3D model (.obj file)"""
+    def post(self):
+        if 'model' not in request.files:
+            return {'error': 'No model file provided'}, 400
+        
+        file = request.files['model']
+        if file.filename == '':
+            return {'error': 'No selected file'}, 400
+        
+        if file and allowed_3d_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = app.config['3D_MODELS_FOLDER'] / filename
+            
+            # Save file
+            file.save(str(filepath))
+            
+            # Generate unique ID from filename
+            model_id = Path(filename).stem
+            
+            return {
+                'model_id': model_id,
+                'filename': filename,
+                'path': str(filepath)
+            }, 201
+        
+        return {'error': 'Invalid file type. Only .obj files allowed'}, 400
+
+
+class Model3DList(Resource):
+    """Get all 3D models"""
+    def get(self):
+        models = []
+        models_dir = app.config['3D_MODELS_FOLDER']
+        
+        for obj_file in models_dir.glob('*.obj'):
+            model_id = obj_file.stem
+            
+            # Check if features are extracted
+            has_features = model_id in shape3d_similarity.database
+            
+            models.append({
+                'model_id': model_id,
+                'filename': obj_file.name,
+                'path': str(obj_file),
+                'has_features': has_features
+            })
+        
+        return {'models': models}, 200
+
+
+class Model3DFeatureExtract(Resource):
+    """Extract features from a 3D model and add to database"""
+    def post(self):
+        data = request.get_json()
+        model_id = data.get('model_id')
+        metadata = data.get('metadata', {})
+        
+        if not model_id:
+            return {'error': 'model_id required'}, 400
+        
+        # Find the .obj file
+        obj_path = app.config['3D_MODELS_FOLDER'] / f'{model_id}.obj'
+        
+        if not obj_path.exists():
+            return {'error': f'Model file not found: {model_id}.obj'}, 404
+        
+        try:
+            # Extract features and add to database
+            features = shape3d_similarity.add_model(model_id, str(obj_path), metadata)
+            
+            return {
+                'model_id': model_id,
+                'features': features,
+                'message': 'Features extracted and saved successfully'
+            }, 200
+        
+        except Exception as e:
+            return {'error': f'Feature extraction failed: {str(e)}'}, 500
+
+
+class Model3DFeatureExtractBatch(Resource):
+    """Extract features from multiple 3D models"""
+    def post(self):
+        data = request.get_json()
+        model_ids = data.get('model_ids', [])
+        
+        results = []
+        errors = []
+        
+        for model_id in model_ids:
+            obj_path = app.config['3D_MODELS_FOLDER'] / f'{model_id}.obj'
+            
+            if not obj_path.exists():
+                errors.append({'model_id': model_id, 'error': 'File not found'})
+                continue
+            
+            try:
+                features = shape3d_similarity.add_model(model_id, str(obj_path))
+                results.append({
+                    'model_id': model_id,
+                    'success': True,
+                    'features': features
+                })
+            except Exception as e:
+                errors.append({'model_id': model_id, 'error': str(e)})
+        
+        return {
+            'processed': results,
+            'errors': errors
+        }, 200
+
+
+class Model3DSimilaritySearch(Resource):
+    """Search for similar 3D models using global features"""
+    def post(self):
+        data = request.get_json()
+        query_model_id = data.get('query_model_id')
+        top_k = data.get('top_k', 10)
+        weights = data.get('weights', None)
+        
+        if not query_model_id:
+            return {'error': 'query_model_id required'}, 400
+        
+        # Get query model path
+        query_obj_path = app.config['3D_MODELS_FOLDER'] / f'{query_model_id}.obj'
+        
+        if not query_obj_path.exists():
+            return {'error': f'Query model not found: {query_model_id}'}, 404
+        
+        try:
+            # Convert weights to numpy array if provided
+            if weights:
+                import numpy as np
+                weights = np.array(weights)
+            
+            # Search for similar models
+            results = shape3d_similarity.search_similar(
+                str(query_obj_path),
+                top_k=top_k,
+                weights=weights
+            )
+            
+            return {
+                'query_model_id': query_model_id,
+                'results': results
+            }, 200
+        
+        except Exception as e:
+            return {'error': f'Search failed: {str(e)}'}, 500
+
+
+class Model3DDetail(Resource):
+    """Get details and features of a specific 3D model"""
+    def get(self, model_id):
+        obj_path = app.config['3D_MODELS_FOLDER'] / f'{model_id}.obj'
+        
+        if not obj_path.exists():
+            return {'error': 'Model not found'}, 404
+        
+        # Get features from database if available
+        features = None
+        metadata = {}
+        
+        if model_id in shape3d_similarity.database:
+            model_data = shape3d_similarity.database[model_id]
+            features = model_data['features']
+            metadata = model_data.get('metadata', {})
+        
+        return {
+            'model_id': model_id,
+            'filename': f'{model_id}.obj',
+            'path': str(obj_path),
+            'has_features': features is not None,
+            'features': features,
+            'metadata': metadata
+        }, 200
+    
+    def delete(self, model_id):
+        """Delete a 3D model and its features"""
+        obj_path = app.config['3D_MODELS_FOLDER'] / f'{model_id}.obj'
+        
+        if not obj_path.exists():
+            return {'error': 'Model not found'}, 404
+        
+        try:
+            # Delete file
+            obj_path.unlink()
+            
+            # Remove from database
+            if model_id in shape3d_similarity.database:
+                del shape3d_similarity.database[model_id]
+                shape3d_similarity._save_database()
+            
+            return {'message': f'Model {model_id} deleted successfully'}, 200
+        
+        except Exception as e:
+            return {'error': f'Deletion failed: {str(e)}'}, 500
+
+
+class Model3DStats(Resource):
+    """Get 3D database statistics"""
+    def get(self):
+        stats = shape3d_similarity.get_database_stats()
+        return stats, 200
+
+
 # Register API routes
 api.add_resource(ImageUpload, '/api/images/upload')
 api.add_resource(ImageList, '/api/images')
@@ -292,10 +511,26 @@ api.add_resource(SimilaritySearch, '/api/search/similar')
 api.add_resource(FeatureVisualize, '/api/features/<string:image_id>/<int:object_id>')
 api.add_resource(DatabaseStats, '/api/stats')
 
+# 3D Model API routes
+api.add_resource(Model3DUpload, '/api/3d/upload')
+api.add_resource(Model3DList, '/api/3d/models')
+api.add_resource(Model3DDetail, '/api/3d/models/<string:model_id>')
+api.add_resource(Model3DFeatureExtract, '/api/3d/features/extract')
+api.add_resource(Model3DFeatureExtractBatch, '/api/3d/features/extract/batch')
+api.add_resource(Model3DSimilaritySearch, '/api/3d/search')
+api.add_resource(Model3DStats, '/api/3d/stats')
+
 # Serve uploaded images
 @app.route('/api/images/file/<path:filename>')
 def serve_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+# Serve 3D model files
+@app.route('/api/3d/models/file/<path:filename>')
+def serve_3d_model(filename):
+    """Serve .obj files for download or preview"""
+    return send_from_directory(app.config['3D_MODELS_FOLDER'], filename)
 
 
 # Download image endpoint
