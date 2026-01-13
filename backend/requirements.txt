@@ -1,10 +1,22 @@
+# Web Framework
 flask
 flask-restful
 flask-cors
-ultralytics
-opencv-python
-numpy
+
+# Computer Vision & Image Processing
+# Note: Using opencv-python-headless saves space by excluding GUI dependencies
+opencv-python-headless
 scikit-image
+Pillow
+
+# Data Science & ML
+numpy
 scikit-learn
 scipy
-Pillow
+
+# Object Detection / YOLO
+# We install the CPU version of torch BEFORE ultralytics to prevent the 4GB+ Nvidia download
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+ultralytics

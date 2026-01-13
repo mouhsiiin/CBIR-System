@@ -329,15 +329,24 @@ class Model3DList(Resource):
         for obj_file in models_dir.glob('*.obj'):
             model_id = obj_file.stem
             
-            # Check if features are extracted
+            # Check if features are extracted and get them
             has_features = model_id in shape3d_similarity.database
+            features = None
             
-            models.append({
+            if has_features:
+                features = shape3d_similarity.database[model_id].get('features')
+            
+            model_data = {
                 'model_id': model_id,
                 'filename': obj_file.name,
                 'path': str(obj_file),
                 'has_features': has_features
-            })
+            }
+            
+            if features:
+                model_data['features'] = features
+            
+            models.append(model_data)
         
         return {'models': models}, 200
 

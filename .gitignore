@@ -13,17 +13,14 @@ dist/
 build/
 
 # Backend
-backend/uploads/*
 !backend/uploads/.gitkeep
 backend/database/features.json
 backend/database/*.json
 
 # Models (too large)
-*.pt
 *.pth
 *.onnx
 *.weights
-models/*.pt
 
 # Node
 frontend/node_modules/

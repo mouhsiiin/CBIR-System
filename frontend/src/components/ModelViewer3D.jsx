@@ -3,20 +3,29 @@ import * as THREE from 'three';
 
 // Simple OBJ loader
 const loadOBJ = (url) => {
-  console.log('Loading OBJ from:', url);
-  return fetch(url)
+  console.log('🔄 Loading OBJ from:', url);
+  return fetch(url, { 
+    method: 'GET',
+    headers: {
+      'Accept': 'text/plain'
+    }
+  })
     .then(response => {
+      console.log('📥 Response status:', response.status);
       if (!response.ok) {
-        throw new Error(`Failed to fetch OBJ: ${response.status}`);
+        throw new Error(`Failed to fetch OBJ: ${response.status} ${response.statusText}`);
       }
       return response.text();
     })
     .then(data => {
-      console.log('OBJ text loaded, length:', data.length);
+      console.log('✅ OBJ text loaded, length:', data.length, 'characters');
+      if (data.length === 0) {
+        throw new Error('OBJ file is empty');
+      }
       return parseOBJ(data);
     })
     .catch(error => {
-      console.error('Error loading OBJ:', error);
+      console.error('❌ Error loading OBJ:', error.message);
       throw error;
     });
 };
@@ -80,11 +89,23 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
   const meshRef = useRef(null);
 
   useEffect(() => {
-    if (!modelUrl || !containerRef.current) return;
+    if (!modelUrl || !containerRef.current) {
+      console.log('⚠️ Missing modelUrl or container:', { modelUrl, container: containerRef.current });
+      return;
+    }
 
+    console.log('🎬 Starting ModelViewer3D setup for:', modelUrl);
+    
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
+
+    console.log('📐 Container dimensions:', { width, height });
+
+    if (width === 0 || height === 0) {
+      console.error('⚠️ Container has zero dimensions!');
+      return;
+    }
 
     // Scene setup
     const scene = new THREE.Scene();
@@ -96,12 +117,14 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
     camera.position.z = 2;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    console.log('🎨 Renderer created');
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -114,6 +137,8 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
     // Load OBJ
     loadOBJ(modelUrl)
       .then(({ vertices, faces }) => {
+        console.log(`✅ Parsed: ${vertices.length} vertices, ${faces.length / 3} triangles`);
+        
         if (vertices.length === 0) {
           throw new Error('No vertices found in OBJ file');
         }
@@ -145,6 +170,8 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
         const scale = 1.5 / maxDim;
         geometry.scale(scale, scale, scale);
 
+        console.log(`📏 Scaled geometry by factor: ${scale}`);
+
         const material = new THREE.MeshPhongMaterial({
           color: 0x4f46e5,
           emissive: 0x1e1b4b,
@@ -157,7 +184,10 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
         meshRef.current = mesh;
         scene.add(mesh);
 
-        console.log('Mesh created and added to scene');
+        console.log('✨ Mesh created and added to scene');
+
+        // Render once first
+        renderer.render(scene, camera);
 
         // Auto-rotate animation
         let animationId;
@@ -170,27 +200,39 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
           renderer.render(scene, camera);
         };
 
-        animate();
+        animationId = animate();
+        console.log('🔄 Animation started');
 
         // Cleanup function
-        return () => cancelAnimationFrame(animationId);
+        return () => {
+          if (animationId) cancelAnimationFrame(animationId);
+        };
       })
       .catch(error => {
-        console.error('Error loading OBJ:', error);
+        console.error('❌ Error loading OBJ:', error);
         
         // Try to display error on canvas
         const canvas = renderer.domElement;
-        const ctx = canvas.getContext('2d');
-        
-        if (ctx) {
-          ctx.fillStyle = '#f3f4f6';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = '#ef4444';
-          ctx.font = '16px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Error loading model', canvas.width / 2, canvas.height / 2 - 20);
-          ctx.font = '12px sans-serif';
-          ctx.fillText(error.message, canvas.width / 2, canvas.height / 2 + 20);
+        if (canvas) {
+          renderer.render(scene, camera); // Clear with background color
+          
+          // Create a 2D overlay for error text
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvas.width;
+          tempCanvas.height = canvas.height;
+          const ctx = tempCanvas.getContext('2d');
+          
+          if (ctx) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Error loading model', tempCanvas.width / 2, tempCanvas.height / 2 - 20);
+            ctx.font = '12px sans-serif';
+            ctx.fillStyle = '#fca5a5';
+            ctx.fillText(error.message, tempCanvas.width / 2, tempCanvas.height / 2 + 20);
+          }
         }
       });
 
@@ -199,9 +241,11 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
       if (!container) return;
       const newWidth = container.clientWidth;
       const newHeight = container.clientHeight;
-      camera.aspect = newWidth / newHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, newHeight);
+      if (newWidth > 0 && newHeight > 0) {
+        camera.aspect = newWidth / newHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(newWidth, newHeight);
+      }
     };
 
     window.addEventListener('resize', handleResize);
@@ -209,10 +253,12 @@ export default function ModelViewer3D({ modelUrl, className = '' }) {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (renderer && container.contains(renderer.domElement)) {
+      if (renderer && container && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
-      renderer.dispose();
+      if (renderer) {
+        renderer.dispose();
+      }
     };
   }, [modelUrl]);
 

@@ -158,16 +158,30 @@ class ApiService {
     return response.json();
   }
 
-  async search3DModels(objPath, topK = 10) {
+  async search3DModels(queryModelId, topK = 10) {
     const response = await fetch(`${API_BASE_URL}/3d/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ obj_path: objPath, top_k: topK }),
+      body: JSON.stringify({ query_model_id: queryModelId, top_k: topK }),
     })
 
     if (!response.ok) {
       const err = await response.json();
       throw new Error(err.error || '3D search failed');
+    }
+    return response.json();
+  }
+
+  async extract3DFeatures(modelId) {
+    const response = await fetch(`${API_BASE_URL}/3d/features/extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_id: modelId }),
+    })
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || 'Feature extraction failed');
     }
     return response.json();
   }
