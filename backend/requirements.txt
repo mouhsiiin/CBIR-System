@@ -8,7 +8,7 @@ flask-cors
 opencv-python-headless
 scikit-image
 Pillow
-
+ 
 # Data Science & ML
 numpy
 scikit-learn

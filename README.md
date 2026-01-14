@@ -1,11 +1,30 @@
 # 🖼️ CBIR System - Content-Based Image Retrieval
 
-A sophisticated Content-Based Image Retrieval (CBIR) system powered by YOLOv8 object detection and comprehensive visual feature extraction. Search for similar images based on visual content rather than metadata or tags.
+A sophisticated Content-Based Image Retrieval (CBIR) system powered by YOLOv8 object detection and comprehensive visual feature extraction. Search for similar images based on visual content rather than metadata or tags. **Now with 3D shape similarity search!**
 
 ![CBIR System](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![React](https://img.shields.io/badge/React-19.2.0-61DAFB?logo=react)
 ![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-00CCFF)
 ![License](https://img.shields.io/badge/License-MIT-green)
+
+## 📖 Quick Navigation
+
+### Documentation Index
+- **[📚 Complete Documentation Index](docs/INDEX.md)** - Navigate all documentation
+- **[3D Search Complete Guide](docs/3D_SEARCH_COMPLETE_GUIDE.md)** - Comprehensive 3D shape search documentation
+- **[3D API Documentation](docs/3D_API_DOCUMENTATION.md)** - 3D API endpoints reference
+- **[3D Shape Features](docs/3D_SHAPE_FEATURES.md)** - Theoretical foundation for 3D features
+- **[3D Quick Start](docs/QUICKSTART_3D.md)** - Get started with 3D search quickly
+- **[Feature Algorithms](docs/ALGORITHMS.md)** - 2D feature extraction algorithms
+- **[Model Training](docs/model.md)** - YOLOv8 model training notes (French)
+- **[Category Reference](CATEGORIES.md)** - 15 ImageNet categories supported
+
+### Features at a Glance
+- 🖼️ **2D Image Search**: Object detection + multi-feature similarity
+- 🎲 **3D Model Search**: Geometric shape-based retrieval
+- 🔍 **Smart Retrieval**: Weighted feature matching
+- ⚡ **Real-time Processing**: Fast detection and search
+- 📊 **Modern UI**: React-based interactive interface
 
 ## 🌟 Features
 
@@ -26,7 +45,12 @@ A sophisticated Content-Based Image Retrieval (CBIR) system powered by YOLOv8 ob
 - Customizable feature weights for similarity search
 - Gallery view with object detection visualization
 - Feature visualization and analysis tools
-- 3D shape search (Global features) - upload `.obj` models and search for similar models using geometric descriptors (volume, surface area, compactness, bounding box aspect ratios, moments of inertia)
+- **🎲 3D Shape Search**: Content-based retrieval for 3D models using global geometric features
+  - Upload `.obj` models and search for similar shapes
+  - 7D feature vector (volume, surface area, compactness, aspect ratios, moments of inertia)
+  - Translation, rotation, and scale invariant
+  - Real-time similarity search with customizable weights
+  - Interactive 3D visualization with Three.js
 
 ## 🏗️ Architecture
 
@@ -35,35 +59,59 @@ CBIR-System/
 ├── backend/              # Flask REST API
 │   ├── app.py           # Main application entry point
 │   ├── services/        # Core services
-│   │   ├── object_detection.py      # YOLOv8 detection
-│   │   ├── feature_extraction.py    # Visual features
+│   │   ├── object_detection.py      # YOLOv8 detection (2D images)
+│   │   ├── feature_extraction.py    # Visual features (2D)
+│   │   ├── shape3d_features.py      # 3D shape features
 │   │   ├── similarity_search.py     # Search engine
 │   │   └── image_manager.py         # Image operations
 │   ├── database/        # Feature database (JSON)
-│   └── uploads/         # Uploaded images storage
+│   │   ├── features.json            # 2D image features
+│   │   └── features_3d.json         # 3D model features
+│   └── uploads/         # Uploaded files storage
+│       ├── images/                  # 2D images
+│       └── 3d_models/               # 3D models (.obj)
 ├── frontend/            # React + Vite application
 │   ├── src/
 │   │   ├── components/  # UI components
+│   │   │   ├── Model3DSearch.jsx    # 3D search interface
+│   │   │   ├── ModelViewer3D.jsx    # 3D visualization
+│   │   │   └── ...                  # Other components
 │   │   ├── pages/       # Application pages
+│   │   │   ├── Gallery.jsx          # 2D image gallery
+│   │   │   └── Gallery3D.jsx        # 3D model gallery
 │   │   └── services/    # API client
 │   └── public/          # Static assets
 ├── models/              # YOLOv8 trained model
 └── docs/                # Documentation
+    ├── 3D_SEARCH_COMPLETE_GUIDE.md  # Comprehensive 3D guide
+    ├── 3D_API_DOCUMENTATION.md      # 3D API reference
+    ├── 3D_SHAPE_FEATURES.md         # 3D features theory
+    ├── QUICKSTART_3D.md             # 3D quick start
+    ├── ALGORITHMS.md                # Feature algorithms
+    └── model.md                     # Model training
 ```
 
 ### System Components
 
 1. **Backend Services** (Python/Flask)
-   - `ObjectDetectionService`: YOLO-based object detection
-   - `FeatureExtractionService`: Comprehensive feature extraction
+   - `ObjectDetectionService`: YOLO-based object detection (2D images)
+   - `FeatureExtractionService`: Comprehensive visual feature extraction (2D)
+   - `Shape3DFeatureExtractor`: Global geometric features for 3D models
    - `SimilaritySearchService`: Multi-feature similarity computation
    - `ImageManager`: Image handling and transformations
 
 2. **Frontend Application** (React)
-   - Step-by-step workflow interface
+   - Step-by-step workflow interface (2D image search)
    - Real-time object detection visualization
    - Interactive feature weight adjustment
-   - Gallery and search results display
+   - 3D model upload and search interface
+   - Gallery views (2D images and 3D models)
+   - 3D visualization with Three.js
+
+3. **Database Storage**
+   - `features.json`: 2D image feature vectors
+   - `features_3d.json`: 3D model feature vectors
+   - JSON-based for simplicity and portability
 
 ## 🚀 Getting Started
 
@@ -133,18 +181,27 @@ See [docs/model.md](docs/model.md) for detailed information about the model trai
 
 ## 💡 Usage
 
-### Basic Workflow
+### 2D Image Search Workflow
 
 1. **Upload Image**: Select and upload an image to analyze
 2. **Detect Objects**: Automatic detection of objects using YOLOv8
 3. **Configure Search**: Select detected objects and adjust feature weights
 4. **Search Similar**: Find visually similar objects in the database
 
+### 3D Model Search Workflow
+
+1. **Upload 3D Model**: Select and upload a `.obj` file
+2. **Extract Features**: Automatic extraction of 7D geometric features
+3. **Search Similar**: Find geometrically similar 3D models
+4. **View Results**: Visualize similar models with interactive 3D preview
+
+For detailed 3D search documentation, see [docs/3D_SEARCH_COMPLETE_GUIDE.md](docs/3D_SEARCH_COMPLETE_GUIDE.md)
+
 ### API Endpoints
 
 The backend provides RESTful API endpoints for all operations:
 
-#### Image Management
+#### 2D Image Management
 - `POST /api/images/upload` - Upload images
 - `GET /api/images` - List all images
 - `GET /api/images/<id>` - Get image details
@@ -162,7 +219,24 @@ The backend provides RESTful API endpoints for all operations:
 #### Similarity Search
 - `POST /api/search/similar` - Find similar objects
 
-For detailed API documentation, see [backend/README.md](backend/README.md)
+#### 3D Model Management
+- `POST /api/3d/upload` - Upload 3D model (.obj)
+- `GET /api/3d/models` - List all 3D models
+- `GET /api/3d/models/file/<filename>` - Get 3D model file
+- `DELETE /api/3d/models/<model_id>` - Delete 3D model
+
+#### 3D Feature Extraction
+- `POST /api/3d/features/extract` - Extract features from single model
+- `POST /api/3d/features/extract/batch` - Batch feature extraction
+- `GET /api/3d/features/<model_id>` - Get model features
+
+#### 3D Similarity Search
+- `POST /api/3d/search` - Find similar 3D models
+- `GET /api/3d/database/stats` - Database statistics
+
+For detailed API documentation, see:
+- 2D Images: [backend/README.md](backend/README.md)
+- 3D Models: [docs/3D_API_DOCUMENTATION.md](docs/3D_API_DOCUMENTATION.md)
 
 ## 🎯 Object Categories
 
@@ -260,25 +334,40 @@ CBIR-System/
 ├── backend/
 │   ├── app.py                    # Flask application
 │   ├── services/
-│   │   ├── object_detection.py   # Object detection service
-│   │   ├── feature_extraction.py # Feature extraction service
+│   │   ├── object_detection.py   # Object detection service (2D)
+│   │   ├── feature_extraction.py # Feature extraction service (2D)
+│   │   ├── shape3d_features.py   # 3D shape feature extraction
 │   │   ├── similarity_search.py  # Similarity search service
 │   │   └── image_manager.py      # Image management service
 │   ├── database/                 # Feature database
-│   ├── uploads/                  # Image storage
+│   │   ├── features.json         # 2D image features
+│   │   └── features_3d.json      # 3D model features
+│   ├── uploads/                  # Storage
+│   │   ├── images/               # Uploaded images
+│   │   └── 3d_models/            # Uploaded 3D models
 │   └── requirements.txt          # Python dependencies
 ├── frontend/
 │   ├── src/
 │   │   ├── components/           # React components
+│   │   │   ├── Model3DSearch.jsx # 3D search component
+│   │   │   ├── ModelViewer3D.jsx # 3D visualization
+│   │   │   └── ...
 │   │   ├── pages/                # Application pages
+│   │   │   ├── Gallery.jsx       # 2D gallery
+│   │   │   └── Gallery3D.jsx     # 3D gallery
 │   │   ├── services/             # API services
 │   │   └── App.jsx               # Main application
 │   ├── package.json              # Node dependencies
 │   └── vite.config.js            # Vite configuration
 ├── models/
-│   └── yolov8n_15classes_finetuned.pt  # Trained model
+│   └── yolov8n_15classes_finetuned.pt  # Trained YOLO model
 ├── docs/
-│   └── model.md                  # Model training documentation
+│   ├── 3D_SEARCH_COMPLETE_GUIDE.md # Comprehensive 3D documentation
+│   ├── 3D_API_DOCUMENTATION.md     # 3D API reference
+│   ├── 3D_SHAPE_FEATURES.md        # 3D features theory
+│   ├── QUICKSTART_3D.md            # 3D quick start
+│   ├── ALGORITHMS.md               # Feature algorithms
+│   └── model.md                    # Model training documentation
 ├── CATEGORIES.md                 # Category documentation
 └── README.md                     # This file
 ```
@@ -313,10 +402,17 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📚 References
 
+### 2D Image Retrieval
 1. Deng, J., et al. "ImageNet: A large-scale hierarchical image database." CVPR 2009.
 2. Jocher, G., et al. "Ultralytics YOLOv8." GitHub, 2023.
 3. Tamura, H., et al. "Textural features corresponding to visual perception." IEEE SMC, 1978.
 4. Hu, M. K. "Visual pattern recognition by moment invariants." IRE Transactions, 1962.
+
+### 3D Shape Retrieval
+5. Osada, R., et al. "Shape Distributions." ACM TOG, 2002.
+6. Zhang, D., & Chen, M. "A Survey on 3D Mesh Segmentation." 2001.
+7. Paquet, E., et al. "Description of Shape Information for 2-D and 3-D Objects." Signal Processing: Image Communication, 2000.
+8. Tangelder, J. W. H., & Veltkamp, R. C. "A Survey of Content-Based 3D Shape Retrieval Methods." Multimedia Tools and Applications, 2008.
 
 ---
 
